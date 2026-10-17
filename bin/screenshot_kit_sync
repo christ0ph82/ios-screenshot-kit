@@ -1,0 +1,49 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Syncs the kit's Swift capture files into a consumer's UI-test directory, or
+# verifies they have not drifted.
+#
+#   ruby vendor/screenshot-kit/bin/screenshot_kit_sync <ui-test-dir>          # copy
+#   ruby vendor/screenshot-kit/bin/screenshot_kit_sync <ui-test-dir> --check  # verify, exit 1 on drift
+#
+# The files land inside the UI-test folder because both host projects use
+# Xcode synchronized folders: a file present in the directory is in the
+# target, and nothing may hand-edit the pbxproj. Byte-identical copies plus
+# this check are the whole sync mechanism — the same arrangement both repos
+# already trusted for SnapshotHelper, made verifiable.
+
+require "fileutils"
+
+SOURCES = Dir[File.expand_path("../swift/*.swift", __dir__)].sort
+dest = ARGV[0]
+check = ARGV.include?("--check")
+
+if dest.nil? || dest.empty?
+  warn "Usage: screenshot_kit_sync <ui-test-dir> [--check]"
+  exit 2
+end
+
+unless Dir.exist?(dest)
+  warn "screenshot_kit_sync: no such directory: #{dest}"
+  exit 2
+end
+
+drifted = []
+SOURCES.each do |source|
+  target = File.join(dest, File.basename(source))
+  if check
+    drifted << File.basename(source) unless File.exist?(target) && File.read(target) == File.read(source)
+  else
+    FileUtils.cp(source, target)
+    puts "synced #{File.basename(source)}"
+  end
+end
+
+if check && !drifted.empty?
+  warn "screenshot_kit_sync: drifted from the kit: #{drifted.join(", ")}. " \
+       "Run screenshot_kit_sync without --check to resync, or move the edit into the kit."
+  exit 1
+end
+puts "screenshot_kit_sync: #{check ? "in sync" : "done"} (#{SOURCES.length} file(s))"
+

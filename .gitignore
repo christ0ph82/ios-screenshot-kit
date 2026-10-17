@@ -1,0 +1,19 @@
+/pkg/
+/tmp/
+/.bundle/
+/Gemfile.lock
+*.gem
+.DS_Store
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+*.p8
+*.p12
+*.pfx
+*.pem
+*.key
+*.mobileprovision
+id_rsa
+id_ed25519

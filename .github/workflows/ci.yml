@@ -1,0 +1,23 @@
+name: CI
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-latest, ruby: '3.1' }
+          - { os: ubuntu-latest, ruby: '3.3' }
+          - { os: macos-latest, ruby: '3.3' }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - name: Keep dependencies outside the source tree
+        run: echo "BUNDLE_PATH=$RUNNER_TEMP/bundle" >> "$GITHUB_ENV"
+      - run: bundle install
+      - run: bundle exec ruby -Ilib test/run_tests.rb
+      - run: gem build screenshot_kit.gemspec
